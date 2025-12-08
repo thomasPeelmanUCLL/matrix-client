@@ -1,47 +1,36 @@
 import { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { Login } from "./components/Login";
+import { Sidebar } from "./components/Sidebar";
+import { ChatView } from "./components/ChatView";
+import { matrixService } from "./services/matrixService";
+import { RoomInfo, Message } from "./types";
 import "./App.css";
 
-interface RoomInfo {
-  room_id: string;
-  name?: string;
-  topic?: string;
-}
-
-interface Message {
-  sender: string;
-  body: string;
-  timestamp: number;
-}
-
-interface LoginResponse {
-  success: boolean;
-  user_id: string;
-  message: string;
-}
-
 function App() {
-  const [homeserver, setHomeserver] = useState("https://matrix.org");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState("");
   const [rooms, setRooms] = useState<RoomInfo[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<RoomInfo | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [message, setMessage] = useState("");
-  const [status, setStatus] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [nextToken, setNextToken] = useState<string | undefined>(undefined);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [error, setError] = useState("");
+  const [status, setStatus] = useState("");
 
-  // Check for existing session on mount
   useEffect(() => {
     checkExistingSession();
   }, []);
 
+  useEffect(() => {
+    if (selectedRoom) {
+      loadInitialMessages(selectedRoom.room_id);
+    }
+  }, [selectedRoom]);
+
   async function checkExistingSession() {
     try {
-      const userId = await invoke<string | null>("check_session");
+      const userId = await matrixService.checkSession();
       if (userId) {
         setCurrentUser(userId);
         setLoggedIn(true);
@@ -54,223 +43,136 @@ function App() {
 
   async function loadRooms() {
     try {
-      await invoke("matrix_sync");
-      const roomList = await invoke<RoomInfo[]>("get_rooms");
+      setStatus("Syncing with server...");
+      await matrixService.sync();
+      
+      setStatus("Loading rooms...");
+      const roomList = await matrixService.getRooms();
       setRooms(roomList);
+      setStatus("");
+      
+      if (roomList.length === 0) {
+        setStatus("No rooms found. Try joining a room on matrix.org");
+      }
     } catch (error) {
       setError(`Failed to load rooms: ${error}`);
+      setStatus("");
     }
   }
 
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
-    setStatus("Connecting to homeserver...");
-
+  async function loadInitialMessages(roomId: string) {
     try {
-      const response = await invoke<LoginResponse>("matrix_login", {
-        homeserver: homeserver.trim(),
-        username: username.trim(),
-        password: password,
-      });
-
-      if (response.success) {
-        setCurrentUser(response.user_id);
-        setLoggedIn(true);
-        setStatus("Loading rooms...");
-        await loadRooms();
-        setStatus("");
-        setPassword(""); // Clear password from memory
-      }
+      setIsLoadingMessages(true);
+      setError("");
+      setMessages([]);
+      setNextToken(undefined);
+      
+      const response = await matrixService.getMessages(roomId, 50);
+      console.log("Initial load:", response); // DEBUG
+      
+      setMessages(response.messages);
+      setNextToken(response.next_token);
+      setHasMoreMessages(response.has_more);
     } catch (error) {
-      setError(String(error));
-      setStatus("");
+      setError(`Error loading messages: ${error}`);
     } finally {
-      setIsLoading(false);
+      setIsLoadingMessages(false);
     }
+  }
+
+  async function loadMoreMessages() {
+    if (!selectedRoom || isLoadingMessages || !hasMoreMessages || !nextToken) return;
+    
+    try {
+      setIsLoadingMessages(true);
+      setError("");
+      
+      console.log("Loading more with token:", nextToken); // DEBUG
+      
+      // Load next batch using the stored token
+      const response = await matrixService.getMessages(selectedRoom.room_id, 50, nextToken);
+      
+      console.log("Loaded more:", response); // DEBUG
+      
+      // Prepend older messages (avoid duplicates by checking timestamp)
+      const existingTimestamps = new Set(messages.map(m => m.timestamp));
+      const newMessages = response.messages.filter(m => !existingTimestamps.has(m.timestamp));
+      
+      setMessages(prev => [...newMessages, ...prev]);
+      setNextToken(response.next_token);
+      setHasMoreMessages(response.has_more);
+    } catch (error) {
+      setError(`Error loading more messages: ${error}`);
+    } finally {
+      setIsLoadingMessages(false);
+    }
+  }
+
+  async function handleLoginSuccess(userId: string) {
+    setCurrentUser(userId);
+    setLoggedIn(true);
+    await new Promise(resolve => setTimeout(resolve, 300));
+    await loadRooms();
   }
 
   async function handleLogout() {
     try {
-      await invoke("logout");
+      await matrixService.logout();
       setLoggedIn(false);
       setCurrentUser("");
       setRooms([]);
       setSelectedRoom(null);
-      setPassword("");
-      setError("");
+      setMessages([]);
+      setNextToken(undefined);
+      setHasMoreMessages(true);
       setStatus("Logged out successfully");
     } catch (error) {
       setError(`Logout failed: ${error}`);
     }
   }
 
-  async function loadMessages(roomId: string) {
-    try {
-      const msgs = await invoke<Message[]>("get_messages", {
-        roomId,
-        limit: 50,
-      });
-      setMessages(msgs);
-    } catch (error) {
-      setError(`Error loading messages: ${error}`);
-    }
-  }
-
-  useEffect(() => {
-    if (selectedRoom) {
-      loadMessages(selectedRoom.room_id);
-    }
-  }, [selectedRoom]);
-
-  async function handleSendMessage() {
-    if (!selectedRoom || !message.trim()) return;
+  async function handleSendMessage(message: string) {
+    if (!selectedRoom) return;
 
     try {
-      await invoke("send_message", {
-        roomId: selectedRoom.room_id,
-        message: message.trim(),
-      });
-      setMessage("");
+      await matrixService.sendMessage(selectedRoom.room_id, message);
       setStatus("Message sent!");
       setTimeout(() => setStatus(""), 2000);
+      await loadInitialMessages(selectedRoom.room_id);
     } catch (error) {
       setError(`Error: ${error}`);
     }
   }
 
   if (!loggedIn) {
-    return (
-      <div className="login-container">
-        <div className="login-box">
-          <div className="login-header">
-            <h1>Matrix Client</h1>
-            <p>Sign in to your Matrix account</p>
-          </div>
-
-          <form onSubmit={handleLogin} className="login-form">
-            <div className="form-group">
-              <label htmlFor="homeserver">Homeserver</label>
-              <input
-                id="homeserver"
-                type="text"
-                placeholder="https://matrix.org"
-                value={homeserver}
-                onChange={(e) => setHomeserver(e.target.value)}
-                disabled={isLoading}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="username">Username</label>
-              <input
-                id="username"
-                type="text"
-                placeholder="@username:matrix.org"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                disabled={isLoading}
-                required
-                autoComplete="username"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
-              <input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-                required
-                autoComplete="current-password"
-              />
-            </div>
-
-            {error && <div className="error-message">{error}</div>}
-            {status && !error && <div className="info-message">{status}</div>}
-
-            <button type="submit" className="login-button" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign In"}
-            </button>
-          </form>
-
-          <div className="login-footer">
-            <p>Don't have an account? Register on your homeserver</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
   return (
     <div className="app-layout">
-      <div className="sidebar">
-        <div className="sidebar-header">
-          <h2>Rooms</h2>
-          <button className="logout-btn" onClick={handleLogout} title="Logout">
-            🚪
-          </button>
-        </div>
-        <div className="user-info">
-          <span className="user-badge">👤</span>
-          <span className="user-id">{currentUser}</span>
-        </div>
-        <div className="rooms-container">
-          {rooms.map((room) => (
-            <div
-              key={room.room_id}
-              className={`room-item ${selectedRoom?.room_id === room.room_id ? "selected" : ""}`}
-              onClick={() => setSelectedRoom(room)}
-            >
-              <strong>{room.name || room.room_id}</strong>
-              {room.topic && <p className="room-topic">{room.topic}</p>}
-            </div>
-          ))}
-        </div>
-      </div>
+      <Sidebar
+        currentUser={currentUser}
+        rooms={rooms}
+        selectedRoom={selectedRoom}
+        onRoomSelect={(room) => {
+          setSelectedRoom(room);
+          setNextToken(undefined);
+          setHasMoreMessages(true);
+        }}
+        onLogout={handleLogout}
+      />
 
       <div className="main-content">
         {selectedRoom ? (
-          <>
-            <div className="room-header">
-              <h2>{selectedRoom.name || selectedRoom.room_id}</h2>
-              <button onClick={() => loadMessages(selectedRoom.room_id)}>
-                🔄 Refresh
-              </button>
-            </div>
-            <div className="messages-area">
-              {messages.length === 0 ? (
-                <p style={{ color: "#8e9297" }}>No messages yet</p>
-              ) : (
-                messages.map((msg, idx) => (
-                  <div key={idx} className="message">
-                    <div className="message-header">
-                      <span className="sender">{msg.sender}</span>
-                      <span className="timestamp">
-                        {new Date(msg.timestamp * 1000).toLocaleTimeString()}
-                      </span>
-                    </div>
-                    <div className="message-body">{msg.body}</div>
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="message-input">
-              <input
-                type="text"
-                placeholder="Type a message..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-              />
-              <button onClick={handleSendMessage}>Send</button>
-            </div>
-          </>
+          <ChatView
+            room={selectedRoom}
+            messages={messages}
+            onSendMessage={handleSendMessage}
+            onRefresh={() => loadInitialMessages(selectedRoom.room_id)}
+            onLoadMore={loadMoreMessages}
+            isLoading={isLoadingMessages}
+            hasMore={hasMoreMessages}
+          />
         ) : (
           <div className="no-room-selected">
             <p>Select a room to start chatting</p>
