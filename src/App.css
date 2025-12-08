@@ -1,7 +1,138 @@
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Login Page */
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.login-box {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 420px;
+  padding: 40px;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.login-header h1 {
+  font-size: 28px;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.login-header p {
+  color: #666;
+  font-size: 14px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.form-group input {
+  padding: 12px 16px;
+  font-size: 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.form-group input:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.error-message {
+  padding: 12px;
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 6px;
+  color: #c33;
+  font-size: 14px;
+}
+
+.info-message {
+  padding: 12px;
+  background: #e3f2fd;
+  border: 1px solid #90caf9;
+  border-radius: 6px;
+  color: #1976d2;
+  font-size: 14px;
+}
+
+.login-button {
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.login-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+}
+
+.login-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-footer {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.login-footer p {
+  font-size: 13px;
+  color: #999;
+}
+
+/* Main App Layout */
 .app-layout {
   display: flex;
   height: 100vh;
@@ -12,13 +143,64 @@
   width: 300px;
   background: #2c2f33;
   color: white;
-  overflow-y: auto;
-  padding: 10px;
+  display: flex;
+  flex-direction: column;
 }
 
-.sidebar h2 {
-  margin: 10px 0;
+.sidebar-header {
+  padding: 15px;
+  background: #23272a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #202225;
+}
+
+.sidebar-header h2 {
   font-size: 18px;
+  margin: 0;
+}
+
+.logout-btn {
+  background: #f04747;
+  border: none;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.logout-btn:hover {
+  background: #d83c3c;
+}
+
+.user-info {
+  padding: 12px 15px;
+  background: #23272a;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #202225;
+}
+
+.user-badge {
+  font-size: 20px;
+}
+
+.user-id {
+  font-size: 13px;
+  color: #b9bbbe;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rooms-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
 }
 
 .room-item {
@@ -56,6 +238,9 @@
   padding: 15px 20px;
   background: #2c2f33;
   border-bottom: 1px solid #202225;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .room-header h2 {
@@ -63,10 +248,51 @@
   font-size: 20px;
 }
 
+.room-header button {
+  padding: 8px 16px;
+  background: #7289da;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.room-header button:hover {
+  background: #5b6eae;
+}
+
 .messages-area {
   flex: 1;
   padding: 20px;
   overflow-y: auto;
+}
+
+.message {
+  margin-bottom: 16px;
+  padding: 8px 0;
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.sender {
+  font-weight: bold;
+  color: #7289da;
+}
+
+.timestamp {
+  font-size: 11px;
+  color: #72767d;
+}
+
+.message-body {
+  color: #dcddde;
+  line-height: 1.4;
 }
 
 .message-input {
@@ -114,36 +340,6 @@
   font-size: 12px;
 }
 
-.container {
-  padding: 20px;
-  max-width: 400px;
-  margin: 50px auto;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.login-form input {
-  padding: 10px;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.login-form button {
-  padding: 10px;
-  font-size: 16px;
-  background: #7289da;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.login-form button:hover {
-  background: #5b6eae;
+.status.error {
+  color: #f04747;
 }

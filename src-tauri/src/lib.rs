@@ -1,4 +1,11 @@
-use matrix_sdk::{config::SyncSettings, Client, ruma::{OwnedRoomId, events::room::message::RoomMessageEventContent}};
+use matrix_sdk::{
+    config::SyncSettings, 
+    Client, 
+    ruma::{
+        OwnedRoomId, 
+        events::room::message::RoomMessageEventContent,
+    }
+};
 use serde::{Deserialize, Serialize};
 use tauri::State;
 use std::sync::Arc;
@@ -6,13 +13,28 @@ use tokio::sync::Mutex;
 
 pub struct MatrixState {
     pub client: Arc<Mutex<Option<Client>>>,
+    pub user_id: Arc<Mutex<Option<String>>>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct RoomInfo {
     room_id: String,
     name: Option<String>,
     topic: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Message {
+    sender: String,
+    body: String,
+    timestamp: u64,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct LoginResponse {
+    success: bool,
+    user_id: String,
+    message: String,
 }
 
 #[tauri::command]
@@ -21,23 +43,71 @@ async fn matrix_login(
     homeserver: String,
     username: String,
     password: String,
-) -> Result<String, String> {
+) -> Result<LoginResponse, String> {
+    // Validate inputs
+    if homeserver.is_empty() {
+        return Err("Homeserver URL is required".to_string());
+    }
+    if username.is_empty() {
+        return Err("Username is required".to_string());
+    }
+    if password.is_empty() {
+        return Err("Password is required".to_string());
+    }
+
+    // Validate homeserver URL format
+    if !homeserver.starts_with("http://") && !homeserver.starts_with("https://") {
+        return Err("Homeserver URL must start with http:// or https://".to_string());
+    }
+
+    // Create client
     let client = Client::builder()
         .homeserver_url(&homeserver)
         .build()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("Failed to connect to homeserver: {}", e))?;
 
-    client
+    // Attempt login
+    let response = client
         .matrix_auth()
         .login_username(&username, &password)
         .initial_device_display_name("Matrix Client")
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("Login failed: {}", e))?;
 
+    let user_id = response.user_id.to_string();
+
+    // Store client and user ID
     *state.client.lock().await = Some(client.clone());
+    *state.user_id.lock().await = Some(user_id.clone());
 
-    Ok(format!("Logged in as {}", username))
+    Ok(LoginResponse {
+        success: true,
+        user_id: user_id.clone(),
+        message: format!("Successfully logged in as {}", user_id),
+    })
+}
+
+#[tauri::command]
+async fn check_session(state: State<'_, MatrixState>) -> Result<Option<String>, String> {
+    let user_id = state.user_id.lock().await;
+    Ok(user_id.clone())
+}
+
+#[tauri::command]
+async fn logout(state: State<'_, MatrixState>) -> Result<String, String> {
+    let client_lock = state.client.lock().await;
+    
+    if let Some(client) = client_lock.as_ref() {
+        client.logout().await.map_err(|e| e.to_string())?;
+    }
+
+    drop(client_lock);
+    
+    *state.client.lock().await = None;
+    *state.user_id.lock().await = None;
+
+    Ok("Logged out successfully".to_string())
 }
 
 #[tauri::command]
@@ -75,6 +145,18 @@ async fn get_rooms(state: State<'_, MatrixState>) -> Result<Vec<RoomInfo>, Strin
 }
 
 #[tauri::command]
+async fn get_messages(
+    state: State<'_, MatrixState>,
+    room_id: String,
+    _limit: u32,
+) -> Result<Vec<Message>, String> {
+    let _client_lock = state.client.lock().await;
+    let _client = _client_lock.as_ref().ok_or("Not logged in")?;
+
+    Ok(vec![])
+}
+
+#[tauri::command]
 async fn send_message(
     state: State<'_, MatrixState>,
     room_id: String,
@@ -86,7 +168,6 @@ async fn send_message(
     let room_id: OwnedRoomId = room_id.parse().map_err(|e| format!("Invalid room ID: {}", e))?;
     let room = client.get_room(&room_id).ok_or("Room not found")?;
 
-    // Use the new API for sending text messages
     let content = RoomMessageEventContent::text_plain(&message);
     room.send(content).await.map_err(|e| e.to_string())?;
 
@@ -104,12 +185,16 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(MatrixState {
             client: Arc::new(Mutex::new(None)),
+            user_id: Arc::new(Mutex::new(None)),
         })
         .invoke_handler(tauri::generate_handler![
             greet,
             matrix_login,
+            check_session,
+            logout,
             matrix_sync,
             get_rooms,
+            get_messages,
             send_message
         ])
         .run(tauri::generate_context!())
