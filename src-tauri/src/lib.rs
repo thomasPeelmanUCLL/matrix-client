@@ -1,18 +1,4 @@
-use matrix_sdk::{
-    config::SyncSettings,
-    Client,
-    room::MessagesOptions,
-    ruma::{
-        OwnedRoomId,
-        events::room::message::RoomMessageEventContent,
-    },
-};
-use serde::{Deserialize, Serialize};
-use tauri::{State, Manager};
-use std::sync::Arc;
-use std::collections::HashMap;
-use std::path::PathBuf;
-use tokio::sync::RwLock;
+use tauri::{ Manager};
 
 mod state;
 mod auth;
