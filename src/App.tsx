@@ -208,12 +208,12 @@ function App() {
             />
           ) : (
             <div className="no-room-selected">
-              <div style={{ textAlign: 'center', maxWidth: '400px', padding: '20px' }}>
-                <p style={{ fontSize: '18px', marginBottom: '15px' }}>Select a room to start chatting</p>
-                <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#b9bbbe' }}>
+              <div className="no-room-selected-content">
+                <p className="main-message">Select a room to start chatting</p>
+                <p className="encouragement">
                   💬 Every conversation starts with a single message. You belong here, and your voice matters.
                 </p>
-                <p style={{ fontSize: '13px', marginTop: '20px', color: '#72767d', fontStyle: 'italic' }}>
+                <p className="reminder">
                   Remember: Everyone feels uncertain sometimes. Reaching out is brave.
                 </p>
               </div>

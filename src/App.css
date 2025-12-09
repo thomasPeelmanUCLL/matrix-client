@@ -132,6 +132,12 @@ body {
   color: #999;
 }
 
+.login-footer .supportive-message {
+  margin-top: 15px;
+  color: #667eea;
+  font-weight: 500;
+}
+
 /* Main App Layout */
 .app-layout {
   display: flex;
@@ -357,6 +363,30 @@ body {
   align-items: center;
   justify-content: center;
   color: #8e9297;
+}
+
+.no-room-selected-content {
+  text-align: center;
+  max-width: 400px;
+  padding: 20px;
+}
+
+.no-room-selected-content .main-message {
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+
+.no-room-selected-content .encouragement {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #b9bbbe;
+}
+
+.no-room-selected-content .reminder {
+  font-size: 13px;
+  margin-top: 20px;
+  color: #72767d;
+  font-style: italic;
 }
 
 .status {
