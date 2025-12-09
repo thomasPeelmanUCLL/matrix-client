@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { RoomInfo, Message, LoginResponse, MessagesResponse } from "../types";
+import { RoomInfo, MessagesResponse, LoginResponse, VerificationStatus } from "../types";
 
 export const matrixService = {
   async login(homeserver: string, username: string, password: string): Promise<LoginResponse> {
@@ -36,5 +36,25 @@ export const matrixService = {
 
   async sendMessage(roomId: string, message: string): Promise<string> {
     return await invoke<string>("send_message", { roomId, message });
+  },
+
+  async checkVerificationStatus(): Promise<VerificationStatus> {
+    return await invoke<VerificationStatus>("check_verification_status");
+  },
+
+  async requestVerification(): Promise<string> {
+    return await invoke<string>("request_verification");
+  },
+
+  async getVerificationEmoji(): Promise<[string, string][]> {
+    return await invoke<[string, string][]>("get_verification_emoji");
+  },
+
+  async confirmVerification(): Promise<string> {
+    return await invoke<string>("confirm_verification");
+  },
+
+  async cancelVerification(): Promise<string> {
+    return await invoke<string>("cancel_verification");
   },
 };

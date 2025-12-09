@@ -22,4 +22,15 @@ export interface MessagesResponse {
   has_more: boolean;
   next_token?: string; // Add this
 }
+export interface VerificationStatus {
+  needs_verification: boolean;
+  is_verified: boolean;
+  emoji?: [string, string][] | null;
+}
 
+
+// src/types/index.ts
+export interface VerificationStatus {
+  needs_verification: boolean;
+  is_verified: boolean;
+}

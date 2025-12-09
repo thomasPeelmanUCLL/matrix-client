@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Login } from "./components/Login";
 import { Sidebar } from "./components/Sidebar";
 import { ChatView } from "./components/ChatView";
+import { VerificationDialog } from "./components/VerificationDialog";
 import { matrixService } from "./services/matrixService";
 import { RoomInfo, Message } from "./types";
 import "./App.css";
@@ -15,6 +16,7 @@ function App() {
   const [nextToken, setNextToken] = useState<string | undefined>(undefined);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
 
@@ -68,7 +70,7 @@ function App() {
       setNextToken(undefined);
       
       const response = await matrixService.getMessages(roomId, 50);
-      console.log("Initial load:", response); // DEBUG
+      console.log("Initial load:", response);
       
       setMessages(response.messages);
       setNextToken(response.next_token);
@@ -87,14 +89,13 @@ function App() {
       setIsLoadingMessages(true);
       setError("");
       
-      console.log("Loading more with token:", nextToken); // DEBUG
+      console.log("Loading more with token:", nextToken);
       
-      // Load next batch using the stored token
       const response = await matrixService.getMessages(selectedRoom.room_id, 50, nextToken);
       
-      console.log("Loaded more:", response); // DEBUG
+      console.log("Loaded more:", response);
       
-      // Prepend older messages (avoid duplicates by checking timestamp)
+      // Deduplicate by timestamp
       const existingTimestamps = new Set(messages.map(m => m.timestamp));
       const newMessages = response.messages.filter(m => !existingTimestamps.has(m.timestamp));
       
@@ -111,8 +112,26 @@ function App() {
   async function handleLoginSuccess(userId: string) {
     setCurrentUser(userId);
     setLoggedIn(true);
-    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Small delay for state to settle
+    await new Promise(resolve => setTimeout(resolve, 500));
     await loadRooms();
+    
+    // Check if verification is needed
+    console.log("Checking verification status...");
+    try {
+      const verificationStatus = await matrixService.checkVerificationStatus();
+      console.log("Verification status:", verificationStatus);
+      
+      if (verificationStatus.needs_verification) {
+        console.log("Showing verification dialog");
+        setShowVerification(true);
+      }
+    } catch (e) {
+      console.error("Could not check verification:", e);
+      // Still show the dialog as a fallback
+      setShowVerification(true);
+    }
   }
 
   async function handleLogout() {
@@ -125,6 +144,7 @@ function App() {
       setMessages([]);
       setNextToken(undefined);
       setHasMoreMessages(true);
+      setShowVerification(false);
       setStatus("Logged out successfully");
     } catch (error) {
       setError(`Logout failed: ${error}`);
@@ -144,44 +164,65 @@ function App() {
     }
   }
 
+  function handleVerificationComplete() {
+    setShowVerification(false);
+    setStatus("✅ Device verified! Messages should now decrypt.");
+    
+    // Reload current room messages
+    if (selectedRoom) {
+      setTimeout(() => {
+        loadInitialMessages(selectedRoom.room_id);
+      }, 1000);
+    }
+  }
+
   if (!loggedIn) {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
   return (
-    <div className="app-layout">
-      <Sidebar
-        currentUser={currentUser}
-        rooms={rooms}
-        selectedRoom={selectedRoom}
-        onRoomSelect={(room) => {
-          setSelectedRoom(room);
-          setNextToken(undefined);
-          setHasMoreMessages(true);
-        }}
-        onLogout={handleLogout}
-      />
+    <>
+      <div className="app-layout">
+        <Sidebar
+          currentUser={currentUser}
+          rooms={rooms}
+          selectedRoom={selectedRoom}
+          onRoomSelect={(room) => {
+            setSelectedRoom(room);
+            setNextToken(undefined);
+            setHasMoreMessages(true);
+          }}
+          onLogout={handleLogout}
+        />
 
-      <div className="main-content">
-        {selectedRoom ? (
-          <ChatView
-            room={selectedRoom}
-            messages={messages}
-            onSendMessage={handleSendMessage}
-            onRefresh={() => loadInitialMessages(selectedRoom.room_id)}
-            onLoadMore={loadMoreMessages}
-            isLoading={isLoadingMessages}
-            hasMore={hasMoreMessages}
-          />
-        ) : (
-          <div className="no-room-selected">
-            <p>Select a room to start chatting</p>
-          </div>
-        )}
-        {error && <p className="status error">{error}</p>}
-        {status && <p className="status">{status}</p>}
+        <div className="main-content">
+          {selectedRoom ? (
+            <ChatView
+              room={selectedRoom}
+              messages={messages}
+              onSendMessage={handleSendMessage}
+              onRefresh={() => loadInitialMessages(selectedRoom.room_id)}
+              onLoadMore={loadMoreMessages}
+              isLoading={isLoadingMessages}
+              hasMore={hasMoreMessages}
+            />
+          ) : (
+            <div className="no-room-selected">
+              <p>Select a room to start chatting</p>
+            </div>
+          )}
+          {error && <p className="status error">{error}</p>}
+          {status && <p className="status">{status}</p>}
+        </div>
       </div>
-    </div>
+
+      {showVerification && (
+        <VerificationDialog
+          onClose={() => setShowVerification(false)}
+          onVerified={handleVerificationComplete}
+        />
+      )}
+    </>
   );
 }
 
