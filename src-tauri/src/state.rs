@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use tokio::sync::RwLock;
 
 pub struct MatrixState {
-    pub client: Arc<RwLock<Option<Client>>,
-    pub user_id: Arc<RwLock<Option<String>>,
+    pub client: Arc<RwLock<Option<Client>>>,
+    pub user_id: Arc<RwLock<Option<String>>>,
     pub pagination_tokens: Arc<RwLock<HashMap<String, String>>>,
     pub data_dir: PathBuf,
     pub verification_flow_id: Arc<RwLock<Option<String>>>,
