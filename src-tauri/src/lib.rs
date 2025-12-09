@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 use matrix_sdk::{
     config::SyncSettings,
     Client,
@@ -14,6 +15,15 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use tokio::sync::RwLock;
 
+=======
+use tauri::{ Manager};
+mod state;
+mod auth;
+mod sync_mod;
+mod rooms;
+mod messages;
+mod verification;
+>>>>>>> Stashed changes
 
 // Add to the state struct
 pub struct MatrixState {
