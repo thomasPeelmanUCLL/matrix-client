@@ -211,7 +211,7 @@ function App() {
               <div className="no-room-selected-content">
                 <p className="main-message">Select a room to start chatting</p>
                 <p className="encouragement">
-                  💬 Every conversation starts with a single message. You belong here, and your voice matters.
+                  <span role="img" aria-label="speech balloon">💬</span> Every conversation starts with a single message. You belong here, and your voice matters.
                 </p>
                 <p className="reminder">
                   Remember: Everyone feels uncertain sometimes. Reaching out is brave.
