@@ -208,7 +208,15 @@ function App() {
             />
           ) : (
             <div className="no-room-selected">
-              <p>Select a room to start chatting</p>
+              <div className="no-room-selected-content">
+                <p className="main-message">Select a room to start chatting</p>
+                <p className="encouragement">
+                  <span role="img" aria-label="speech balloon">💬</span> Every conversation starts with a single message. You belong here, and your voice matters.
+                </p>
+                <p className="reminder">
+                  Remember: Everyone feels uncertain sometimes. Reaching out is brave.
+                </p>
+              </div>
             </div>
           )}
           {error && <p className="status error">{error}</p>}
