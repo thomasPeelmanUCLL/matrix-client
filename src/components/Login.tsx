@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { matrixService } from "../services/matrixService";
+import { loginInfo } from "./login-info";
 
 
 interface LoginProps {
@@ -7,9 +8,9 @@ interface LoginProps {
 }
 
 export function Login({ onLoginSuccess }: LoginProps) {
-  const [homeserver, setHomeserver] = useState("https://matrix.org");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [homeserver, setHomeserver] = useState(loginInfo.homeserver);
+  const [username, setUsername] = useState(loginInfo.username);
+  const [password, setPassword] = useState(loginInfo.password);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
