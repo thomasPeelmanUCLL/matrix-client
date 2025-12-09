@@ -95,6 +95,9 @@ export function Login({ onLoginSuccess }: LoginProps) {
 
         <div className="login-footer">
           <p>Don't have an account? Register on your homeserver</p>
+          <p style={{ marginTop: '15px', color: '#667eea', fontWeight: '500' }}>
+            💙 You're not alone. Connecting with others is a sign of strength, not weakness.
+          </p>
         </div>
       </div>
     </div>
