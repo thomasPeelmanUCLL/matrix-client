@@ -33,30 +33,29 @@ export function VerificationDialog({ onClose, onVerified }: VerificationDialogPr
     setStatus("");
   }
 
-  async function submitRecoveryKey() {
-    if (!recoveryKey.trim()) {
-      setError("Please enter your recovery key");
-      return;
-    }
-
-    try {
-      setStatus("Verifying recovery key...");
-      setError("");
-      
-      await matrixService.requestRecoveryKeyVerification(recoveryKey.trim());
-      
-      setStatus("Recovery key verified! Loading keys...");
-      
-      // Wait a bit for keys to sync
-      setTimeout(() => {
-        onVerified();
-      }, 2000);
-    } catch (e) {
-      setError(String(e));
-      setStatus("");
-    }
+async function submitRecoveryKey() {
+  if (!recoveryKey.trim()) {
+    setError("Please enter your recovery key");
+    return;
   }
 
+  try {
+    setStatus("Verifying recovery key...");
+    setError("");
+    
+    await matrixService.requestRecoveryKeyVerification(recoveryKey.trim());
+    
+    setStatus("Recovery key verified! Syncing encryption keys...");
+    
+    // Give more time for keys to be imported and processed
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    onVerified();
+  } catch (e) {
+    setError(String(e));
+    setStatus("");
+  }
+}
   async function pollForEmoji() {
     const maxAttempts = 60;
     let attempts = 0;

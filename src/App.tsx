@@ -199,15 +199,28 @@ function App() {
     }
   }
 
-  function handleVerificationComplete() {
+  async function handleVerificationComplete() {
     setShowVerification(false);
-    setStatus("✅ Device verified! Messages should now decrypt.");
+    setStatus("✅ Device verified! Syncing encryption keys...");
 
-    // Reload current room messages
-    if (selectedRoom) {
-      setTimeout(() => {
-        loadInitialMessages(selectedRoom.room_id);
-      }, 1000);
+    try {
+      // Perform a full sync to ensure keys are downloaded and processed
+      await matrixService.sync();
+
+      setStatus("✅ Keys synced! Reloading messages...");
+
+      // Wait a bit longer for keys to be fully processed
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Reload current room messages
+      if (selectedRoom) {
+        await loadInitialMessages(selectedRoom.room_id);
+      }
+
+      setStatus("✅ Device verified and messages decrypted!");
+      setTimeout(() => setStatus(""), 3000);
+    } catch (error) {
+      setError(`Error syncing after verification: ${error}`);
     }
   }
 
