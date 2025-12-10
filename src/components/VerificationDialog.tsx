@@ -7,10 +7,11 @@ interface VerificationDialogProps {
 }
 
 export function VerificationDialog({ onClose, onVerified }: VerificationDialogProps) {
-  const [step, setStep] = useState<"request" | "emoji" | "waiting">("request");
+  const [step, setStep] = useState<"request" | "emoji" | "waiting" | "recovery">("request");
   const [emoji, setEmoji] = useState<[string, string][]>([]);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
+  const [recoveryKey, setRecoveryKey] = useState("");
 
   async function startVerification() {
     try {
@@ -26,33 +27,62 @@ export function VerificationDialog({ onClose, onVerified }: VerificationDialogPr
     }
   }
 
-  async function pollForEmoji() {
-  const maxAttempts = 60; // Increase to 60 seconds
-  let attempts = 0;
+  async function startVerificationAlternate() {
+    setStep("recovery");
+    setError("");
+    setStatus("");
+  }
 
-  const interval = setInterval(async () => {
-    attempts++;
-    
+  async function submitRecoveryKey() {
+    if (!recoveryKey.trim()) {
+      setError("Please enter your recovery key");
+      return;
+    }
+
     try {
-      const emojiList = await matrixService.getVerificationEmoji();
-      if (emojiList && emojiList.length > 0) {
-        console.log("Got emoji!", emojiList);
-        setEmoji(emojiList);
-        setStep("emoji");
-        setStatus("");
-        clearInterval(interval);
-      }
+      setStatus("Verifying recovery key...");
+      setError("");
+      
+      await matrixService.requestRecoveryKeyVerification(recoveryKey.trim());
+      
+      setStatus("Recovery key verified! Loading keys...");
+      
+      // Wait a bit for keys to sync
+      setTimeout(() => {
+        onVerified();
+      }, 2000);
     } catch (e) {
-      console.log("Polling for emoji:", String(e));
-      // Keep polling - errors are expected while waiting
+      setError(String(e));
+      setStatus("");
     }
+  }
 
-    if (attempts >= maxAttempts) {
-      clearInterval(interval);
-      setError("Verification timed out - other device didn't respond");
-    }
-  }, 1000);
-}
+  async function pollForEmoji() {
+    const maxAttempts = 60;
+    let attempts = 0;
+
+    const interval = setInterval(async () => {
+      attempts++;
+      
+      try {
+        const emojiList = await matrixService.getVerificationEmoji();
+        if (emojiList && emojiList.length > 0) {
+          console.log("Got emoji!", emojiList);
+          setEmoji(emojiList);
+          setStep("emoji");
+          setStatus("");
+          clearInterval(interval);
+        }
+      } catch (e) {
+        console.log("Polling for emoji:", String(e));
+      }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        setError("Verification timed out - other device didn't respond");
+      }
+    }, 1000);
+  }
 
   async function confirmMatch() {
     try {
@@ -60,7 +90,6 @@ export function VerificationDialog({ onClose, onVerified }: VerificationDialogPr
       await matrixService.confirmVerification();
       setStatus("Verified! Loading keys...");
       
-      // Wait a bit for keys to sync
       setTimeout(() => {
         onVerified();
       }, 2000);
@@ -84,60 +113,103 @@ export function VerificationDialog({ onClose, onVerified }: VerificationDialogPr
         <h2>🔐 Device Verification</h2>
 
         {step === "request" && (
-        <>
+          <>
             <p>To decrypt encrypted messages, you need to verify this device with another device where you're already logged in (Element).</p>
             <div style={{ 
-            background: "#40444b", 
-            padding: "15px", 
-            borderRadius: "4px",
-            marginBottom: "15px",
-            fontSize: "14px"
+              background: "#40444b", 
+              padding: "15px", 
+              borderRadius: "4px",
+              marginBottom: "15px",
+              fontSize: "14px"
             }}>
-            <strong>📱 Before starting:</strong>
-            <ol style={{ marginLeft: "20px", marginTop: "10px" }}>
+              <strong>📱 Before starting:</strong>
+              <ol style={{ marginLeft: "20px", marginTop: "10px" }}>
                 <li>Open Element on your phone or computer</li>
                 <li>Make sure you're logged in with the same account</li>
                 <li>Keep Element open and visible</li>
-            </ol>
+              </ol>
             </div>
             <div className="button-group">
-            <button onClick={startVerification} className="primary-btn">
+              <button onClick={startVerification} className="primary-btn">
                 Start Verification
-            </button>
-            <button onClick={onClose} className="secondary-btn">
+              </button>
+              <button onClick={startVerificationAlternate} className="secondary-btn">
+                Use Recovery Key Instead
+              </button>
+              <button onClick={onClose} className="secondary-btn">
                 Skip for Now
-            </button>
+              </button>
             </div>
-        </>
+          </>
+        )}
+
+        {step === "recovery" && (
+          <>
+            <p><strong>Enter your Security Key/Recovery Key</strong></p>
+            <div style={{ 
+              background: "#40444b", 
+              padding: "15px", 
+              borderRadius: "4px",
+              margin: "15px 0",
+              fontSize: "14px"
+            }}>
+              <p>This is the recovery key you saved when you first set up encryption in Element.</p>
+              <p style={{ marginTop: "10px" }}>It looks like: <code>EsTc 1234 5678...</code></p>
+            </div>
+            <input
+              type="text"
+              value={recoveryKey}
+              onChange={(e) => setRecoveryKey(e.target.value)}
+              placeholder="Enter recovery key"
+              style={{
+                width: "100%",
+                padding: "10px",
+                marginBottom: "15px",
+                background: "#40444b",
+                border: "1px solid #202225",
+                borderRadius: "4px",
+                color: "#dcddde",
+                fontSize: "14px"
+              }}
+              autoFocus
+            />
+            <div className="button-group">
+              <button onClick={submitRecoveryKey} className="primary-btn">
+                Verify with Key
+              </button>
+              <button onClick={() => setStep("request")} className="secondary-btn">
+                Back
+              </button>
+            </div>
+          </>
         )}
 
         {step === "waiting" && (
-        <>
+          <>
             <p><strong>{status}</strong></p>
             <div style={{ 
-            background: "#40444b", 
-            padding: "15px", 
-            borderRadius: "4px",
-            margin: "15px 0",
-            fontSize: "14px"
+              background: "#40444b", 
+              padding: "15px", 
+              borderRadius: "4px",
+              margin: "15px 0",
+              fontSize: "14px"
             }}>
-            <strong>On your Element device:</strong>
-            <ol style={{ marginLeft: "20px", marginTop: "10px" }}>
+              <strong>On your Element device:</strong>
+              <ol style={{ marginLeft: "20px", marginTop: "10px" }}>
                 <li>Look for a verification notification (bell icon)</li>
                 <li>Tap/click on it</li>
                 <li>Choose "Verify with Emoji"</li>
-            </ol>
+              </ol>
             </div>
             <div className="spinner"></div>
             <p style={{ fontSize: "12px", color: "#8e9297", marginTop: "10px" }}>
-            Waiting for you to accept on Element... (up to 30 seconds)
+              Waiting for you to accept on Element... (up to 60 seconds)
             </p>
             <button onClick={handleCancel} className="secondary-btn">
-            Cancel
+              Cancel
             </button>
-        </>
+          </>
         )}
-
 
         {step === "emoji" && (
           <>

@@ -1,8 +1,17 @@
 import { invoke } from "@tauri-apps/api/core";
-import { RoomInfo, MessagesResponse, LoginResponse, VerificationStatus } from "../types";
+import {
+  RoomInfo,
+  MessagesResponse,
+  LoginResponse,
+  VerificationStatus,
+} from "../types";
 
 export const matrixService = {
-  async login(homeserver: string, username: string, password: string): Promise<LoginResponse> {
+  async login(
+    homeserver: string,
+    username: string,
+    password: string
+  ): Promise<LoginResponse> {
     return await invoke<LoginResponse>("matrix_login", {
       homeserver: homeserver.trim(),
       username: username.trim(),
@@ -26,11 +35,15 @@ export const matrixService = {
     return await invoke<RoomInfo[]>("get_rooms");
   },
 
-  async getMessages(roomId: string, limit: number = 100, fromToken?: string): Promise<MessagesResponse> {
-    return await invoke<MessagesResponse>("get_messages", { 
-      roomId, 
+  async getMessages(
+    roomId: string,
+    limit: number = 100,
+    fromToken?: string
+  ): Promise<MessagesResponse> {
+    return await invoke<MessagesResponse>("get_messages", {
+      roomId,
       limit,
-      fromToken: fromToken || null
+      fromToken: fromToken || null,
     });
   },
 
@@ -46,6 +59,9 @@ export const matrixService = {
     return await invoke<string>("request_verification");
   },
 
+  async requestRecoveryKeyVerification(recoveryKey: string): Promise<string> {
+    return await invoke<string>("verify_with_recovery_key", { recoveryKey });
+  },
   async getVerificationEmoji(): Promise<[string, string][]> {
     return await invoke<[string, string][]>("get_verification_emoji");
   },

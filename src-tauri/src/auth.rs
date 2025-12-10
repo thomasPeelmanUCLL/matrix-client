@@ -1,10 +1,7 @@
-use matrix_sdk::{
-    config::SyncSettings,
-    Client,
-};
+use matrix_sdk::{config::SyncSettings, Client};
 use serde::{Deserialize, Serialize};
-use tauri::State;
 use std::fs;
+use tauri::State;
 
 use crate::state::MatrixState;
 
@@ -119,4 +116,33 @@ pub async fn logout(state: State<'_, MatrixState>) -> Result<String, String> {
     }
 
     Ok("Logged out successfully".to_string())
+}
+
+#[tauri::command]
+pub async fn verify_with_recovery_key(
+    state: State<'_, MatrixState>,
+    recovery_key: String,
+) -> Result<String, String> {
+    if recovery_key.trim().is_empty() {
+        return Err("Recovery key is required".to_string());
+    }
+
+    let client_guard = state.client.read().await;
+    let client = client_guard
+        .as_ref()
+        .ok_or("Client is not logged in")?;
+
+    let encryption = client.encryption();
+    let recovery = encryption.recovery();
+
+    println!("Attempting to recover using recovery key...");
+
+    recovery
+        .recover(&recovery_key)
+        .await
+        .map_err(|e| format!("Failed to verify with recovery key: {}", e))?;
+
+    println!("Recovery completed successfully.");
+
+    Ok("Recovery key verification completed".to_string())
 }
