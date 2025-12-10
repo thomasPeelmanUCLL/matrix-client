@@ -6,6 +6,7 @@ import { VerificationDialog } from "./components/VerificationDialog";
 import { matrixService } from "./services/matrixService";
 import { RoomInfo, Message } from "./types";
 import "./App.css";
+import { VerificationStatus } from "./types"; // if not already
 
 function App() {
   const [loggedIn, setLoggedIn] = useState(false);
@@ -19,6 +20,9 @@ function App() {
   const [showVerification, setShowVerification] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
+
+  const [isVerified, setIsVerified] = useState<boolean | null>(null);
+  const [isCheckingVerification, setIsCheckingVerification] = useState(false);
 
   useEffect(() => {
     checkExistingSession();
@@ -43,16 +47,29 @@ function App() {
     }
   }
 
+  async function refreshVerificationStatus() {
+    try {
+      setIsCheckingVerification(true);
+      const v = await matrixService.checkVerificationStatus();
+      setIsVerified(!v.needs_verification);
+    } catch (e) {
+      console.error("Verification status error:", e);
+      setIsVerified(null);
+    } finally {
+      setIsCheckingVerification(false);
+    }
+  }
+
   async function loadRooms() {
     try {
       setStatus("Syncing with server...");
       await matrixService.sync();
-      
+
       setStatus("Loading rooms...");
       const roomList = await matrixService.getRooms();
       setRooms(roomList);
       setStatus("");
-      
+
       if (roomList.length === 0) {
         setStatus("No rooms found. Try joining a room on matrix.org");
       }
@@ -68,10 +85,10 @@ function App() {
       setError("");
       setMessages([]);
       setNextToken(undefined);
-      
+
       const response = await matrixService.getMessages(roomId, 50);
       console.log("Initial load:", response);
-      
+
       setMessages(response.messages);
       setNextToken(response.next_token);
       setHasMoreMessages(response.has_more);
@@ -83,23 +100,30 @@ function App() {
   }
 
   async function loadMoreMessages() {
-    if (!selectedRoom || isLoadingMessages || !hasMoreMessages || !nextToken) return;
-    
+    if (!selectedRoom || isLoadingMessages || !hasMoreMessages || !nextToken)
+      return;
+
     try {
       setIsLoadingMessages(true);
       setError("");
-      
+
       console.log("Loading more with token:", nextToken);
-      
-      const response = await matrixService.getMessages(selectedRoom.room_id, 50, nextToken);
-      
+
+      const response = await matrixService.getMessages(
+        selectedRoom.room_id,
+        50,
+        nextToken
+      );
+
       console.log("Loaded more:", response);
-      
+
       // Deduplicate by timestamp
-      const existingTimestamps = new Set(messages.map(m => m.timestamp));
-      const newMessages = response.messages.filter(m => !existingTimestamps.has(m.timestamp));
-      
-      setMessages(prev => [...newMessages, ...prev]);
+      const existingTimestamps = new Set(messages.map((m) => m.timestamp));
+      const newMessages = response.messages.filter(
+        (m) => !existingTimestamps.has(m.timestamp)
+      );
+
+      setMessages((prev) => [...newMessages, ...prev]);
       setNextToken(response.next_token);
       setHasMoreMessages(response.has_more);
     } catch (error) {
@@ -112,17 +136,17 @@ function App() {
   async function handleLoginSuccess(userId: string) {
     setCurrentUser(userId);
     setLoggedIn(true);
-    
+
     // Small delay for state to settle
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
     await loadRooms();
-    
+
     // Check if verification is needed
     console.log("Checking verification status...");
     try {
       const verificationStatus = await matrixService.checkVerificationStatus();
       console.log("Verification status:", verificationStatus);
-      
+
       if (verificationStatus.needs_verification) {
         console.log("Showing verification dialog");
         setShowVerification(true);
@@ -130,6 +154,17 @@ function App() {
     } catch (e) {
       console.error("Could not check verification:", e);
       // Still show the dialog as a fallback
+      setShowVerification(true);
+
+      await refreshVerificationStatus();
+    }
+  }
+  async function handleRetryVerification() {
+    // For debugging: always re-check first
+    await refreshVerificationStatus();
+
+    // If still unverified, show your existing VerificationDialog
+    if (isVerified === false) {
       setShowVerification(true);
     }
   }
@@ -167,7 +202,7 @@ function App() {
   function handleVerificationComplete() {
     setShowVerification(false);
     setStatus("✅ Device verified! Messages should now decrypt.");
-    
+
     // Reload current room messages
     if (selectedRoom) {
       setTimeout(() => {
@@ -193,6 +228,8 @@ function App() {
             setHasMoreMessages(true);
           }}
           onLogout={handleLogout}
+          isVerified={isCheckingVerification ? null : isVerified}
+          onRetryVerification={handleRetryVerification}
         />
 
         <div className="main-content">
@@ -211,10 +248,15 @@ function App() {
               <div className="no-room-selected-content">
                 <p className="main-message">Select a room to start chatting</p>
                 <p className="encouragement">
-                  <span role="img" aria-label="speech balloon">💬</span> Every conversation starts with a single message. You belong here, and your voice matters.
+                  <span role="img" aria-label="speech balloon">
+                    💬
+                  </span>{" "}
+                  Every conversation starts with a single message. You belong
+                  here, and your voice matters.
                 </p>
                 <p className="reminder">
-                  Remember: Everyone feels uncertain sometimes. Reaching out is brave.
+                  Remember: Everyone feels uncertain sometimes. Reaching out is
+                  brave.
                 </p>
               </div>
             </div>
