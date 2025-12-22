@@ -24,4 +24,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1.48.0", features = ["full"] }
 matrix-sdk = { version = "0.16.0", features = ["e2e-encryption", "sqlite", "bundled-sqlite", "markdown"] }
+url = "2"
+anyhow = "1"  # for easier error handling
+tracing = "0.1"  # for logging
+tracing-subscriber = "0.3"  # for pretty console logs
 
