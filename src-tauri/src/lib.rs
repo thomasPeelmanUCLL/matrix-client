@@ -47,6 +47,7 @@ pub fn run() {
             confirm_verification,
             cancel_verification,
             verify_with_recovery_key,
+            request_room_keys,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

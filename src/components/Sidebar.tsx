@@ -25,7 +25,7 @@ export function Sidebar({
       <div className="sidebar-header">
         <h2>Rooms</h2>
         <button className="logout-btn" onClick={onLogout} title="Logout">
-          🚪
+          Logout
         </button>
       </div>
 

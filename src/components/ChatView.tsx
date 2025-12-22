@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { RoomInfo, Message } from "../types";
+import { matrixService } from "../services/matrixService";
 
 interface ChatViewProps {
   room: RoomInfo;
@@ -24,16 +25,30 @@ export function ChatView({ room, messages, onSendMessage, onRefresh, onLoadMore,
   return (
     <div className="chat-view">
       <div className="room-header">
-        <h2>{room.name || room.room_id}</h2>
-        <div>
-          <button onClick={onLoadMore} disabled={isLoading || !hasMore} style={{ marginRight: "10px" }}>
-            {isLoading ? "⏳ Loading..." : hasMore ? "📜 Load More" : "✓ All loaded"}
-          </button>
-          <button onClick={onRefresh} disabled={isLoading}>
-            🔄 Refresh
-          </button>
-        </div>
-      </div>
+  <h2>{room.name || room.room_id}</h2>
+  <div>
+    <button onClick={onLoadMore} disabled={isLoading || !hasMore} style={{ marginRight: "10px" }}>
+      {isLoading ? "⏳ Loading..." : hasMore ? "📜 Load More" : "✓ All loaded"}
+    </button>
+    <button onClick={onRefresh} disabled={isLoading} style={{ marginRight: "10px" }}>
+      🔄 Refresh
+    </button>
+    <button 
+      onClick={async () => {
+        try {
+          await matrixService.requestRoomKeys(room.room_id);
+          alert("Key request sent! Wait a moment, then refresh.");
+        } catch (e) {
+          alert(`Error: ${e}`);
+        }
+      }} 
+      disabled={isLoading}
+      style={{ background: "#5865f2" }}
+    >
+      🔑 Request Keys
+    </button>
+  </div>
+</div>
 
       <div className="messages-area">
         {isLoading && messages.length === 0 ? (

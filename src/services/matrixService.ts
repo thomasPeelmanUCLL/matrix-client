@@ -73,4 +73,8 @@ export const matrixService = {
   async cancelVerification(): Promise<string> {
     return await invoke<string>("cancel_verification");
   },
+
+  async requestRoomKeys(roomId: string): Promise<string> {
+  return await invoke<string>("request_room_keys", { roomId });
+},
 };

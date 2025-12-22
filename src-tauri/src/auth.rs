@@ -128,9 +128,7 @@ pub async fn verify_with_recovery_key(
     }
 
     let client_guard = state.client.read().await;
-    let client = client_guard
-        .as_ref()
-        .ok_or("Client is not logged in")?;
+    let client = client_guard.as_ref().ok_or("Client is not logged in")?;
 
     let encryption = client.encryption();
     let recovery = encryption.recovery();
@@ -145,4 +143,38 @@ pub async fn verify_with_recovery_key(
     println!("Recovery completed successfully.");
 
     Ok("Recovery key verification completed".to_string())
+}
+
+use matrix_sdk::ruma::RoomId; // Ensure you have this import
+//use tauri::State;
+
+#[tauri::command]
+pub async fn request_room_keys(
+    state: State<'_, MatrixState>,
+    room_id: String,
+) -> Result<String, String> {
+    let client_guard = state.client.read().await;
+    let client = client_guard.as_ref().ok_or("Client is not logged in")?;
+
+    // Parse the room ID correctly
+    let room_id = RoomId::parse(&room_id)
+        .map_err(|e| format!("Invalid room ID: {}", e))?;
+
+    // Ensure the room exists (optional check, but good for validation)
+    if client.get_room(&room_id).is_none() {
+        return Err("Room not found".to_string());
+    }
+
+    println!("Requesting backup keys for room: {}", room_id);
+
+    // Access the encryption module and then the backups submodule
+    // This downloads the keys from the server-side backup if available
+    client
+        .encryption()
+        .backups()
+        .download_room_keys_for_room(&room_id)
+        .await
+        .map_err(|e| format!("Failed to download room keys from backup: {}", e))?;
+
+    Ok("Room keys downloaded from backup".to_string())
 }
