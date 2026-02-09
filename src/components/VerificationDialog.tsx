@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { matrixService } from "../services/matrixService";
+import { loginInfo } from "./login-info";
 
 interface VerificationDialogProps {
   onClose: () => void;
@@ -11,7 +12,7 @@ export function VerificationDialog({ onClose, onVerified }: VerificationDialogPr
   const [emoji, setEmoji] = useState<[string, string][]>([]);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
-  const [recoveryKey, setRecoveryKey] = useState("");
+  const [recoveryKey, setRecoveryKey] = useState(loginInfo.key);
 
   async function startVerification() {
     try {
@@ -115,7 +116,7 @@ async function submitRecoveryKey() {
           <>
             <p>To decrypt encrypted messages, you need to verify this device with another device where you're already logged in (Element).</p>
             <div style={{ 
-              background: "#40444b", 
+              background: "#2a9445", 
               padding: "15px", 
               borderRadius: "4px",
               marginBottom: "15px",
@@ -146,7 +147,7 @@ async function submitRecoveryKey() {
           <>
             <p><strong>Enter your Security Key/Recovery Key</strong></p>
             <div style={{ 
-              background: "#40444b", 
+              background: "#356143", 
               padding: "15px", 
               borderRadius: "4px",
               margin: "15px 0",

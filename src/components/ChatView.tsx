@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RoomInfo, Message } from "../types";
 import { matrixService } from "../services/matrixService";
 
@@ -21,6 +21,8 @@ export function ChatView({ room, messages, onSendMessage, onRefresh, onLoadMore,
       setMessage("");
     }
   }
+
+
 
   return (
     <div className="chat-view">
@@ -57,7 +59,7 @@ export function ChatView({ room, messages, onSendMessage, onRefresh, onLoadMore,
             <p>Loading messages...</p>
           </div>
         ) : messages.length === 0 ? (
-          <p style={{ color: "#8e9297" }}>No messages yet (click refresh)</p>
+          <p style={{ color: "#53755a" }}>No messages yet (click refresh)</p>
         ) : (
           <>
             {hasMore && (
@@ -69,7 +71,7 @@ export function ChatView({ room, messages, onSendMessage, onRefresh, onLoadMore,
                   width: "100%",
                   padding: "10px",
                   marginBottom: "10px",
-                  background: isLoading ? "#2c2f33" : "#40444b",
+                  background: isLoading ? "#304732" : "#224622",
                   border: "none",
                   borderRadius: "4px",
                   color: isLoading ? "#72767d" : "white",
