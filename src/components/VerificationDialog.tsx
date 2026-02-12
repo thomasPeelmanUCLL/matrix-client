@@ -116,7 +116,7 @@ async function submitRecoveryKey() {
           <>
             <p>To decrypt encrypted messages, you need to verify this device with another device where you're already logged in (Element).</p>
             <div style={{ 
-              background: "#2a9445", 
+              background: "#23422b", 
               padding: "15px", 
               borderRadius: "4px",
               marginBottom: "15px",
@@ -165,10 +165,10 @@ async function submitRecoveryKey() {
                 width: "100%",
                 padding: "10px",
                 marginBottom: "15px",
-                background: "#40444b",
+                background: "#252725",
                 border: "1px solid #202225",
                 borderRadius: "4px",
-                color: "#dcddde",
+                color: "#a8d8b0",
                 fontSize: "14px"
               }}
               autoFocus
@@ -202,7 +202,7 @@ async function submitRecoveryKey() {
               </ol>
             </div>
             <div className="spinner"></div>
-            <p style={{ fontSize: "12px", color: "#8e9297", marginTop: "10px" }}>
+            <p style={{ fontSize: "12px", color: "#649b72", marginTop: "10px" }}>
               Waiting for you to accept on Element... (up to 60 seconds)
             </p>
             <button onClick={handleCancel} className="secondary-btn">

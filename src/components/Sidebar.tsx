@@ -20,6 +20,7 @@ export function Sidebar({
   isVerified,
   onRetryVerification,
 }: SidebarProps) {
+  
   return (
     <div className="sidebar">
       <div className="sidebar-header">

@@ -17,11 +17,12 @@ function App() {
   const [nextToken, setNextToken] = useState<string | undefined>(undefined);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isLoadingRooms, setIsLoadingRooms] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
 
-  const [isVerified, setIsVerified] = useState<boolean | null>(null);
+  const [isVerified, setIsVerified] = useState<boolean | null>(false);
   const [isCheckingVerification, setIsCheckingVerification] = useState(false);
 
   useEffect(() => {
@@ -54,13 +55,14 @@ function App() {
       setIsVerified(!v.needs_verification);
     } catch (e) {
       console.error("Verification status error:", e);
-      setIsVerified(null);
+      setIsVerified(false);
     } finally {
       setIsCheckingVerification(false);
     }
   }
 
   async function loadRooms() {
+    setIsLoadingRooms(true);
     try {
       setStatus("Syncing with server...");
       await matrixService.sync();
@@ -77,6 +79,7 @@ function App() {
       setError(`Failed to load rooms: ${error}`);
       setStatus("");
     }
+    setIsLoadingRooms(false);
   }
 
   async function loadInitialMessages(roomId: string) {
@@ -112,7 +115,7 @@ function App() {
       const response = await matrixService.getMessages(
         selectedRoom.room_id,
         50,
-        nextToken
+        nextToken,
       );
 
       console.log("Loaded more:", response);
@@ -120,7 +123,7 @@ function App() {
       // Deduplicate by timestamp
       const existingTimestamps = new Set(messages.map((m) => m.timestamp));
       const newMessages = response.messages.filter(
-        (m) => !existingTimestamps.has(m.timestamp)
+        (m) => !existingTimestamps.has(m.timestamp),
       );
 
       setMessages((prev) => [...newMessages, ...prev]);
@@ -160,6 +163,7 @@ function App() {
     }
   }
   async function handleRetryVerification() {
+    setIsVerified(null);
     // For debugging: always re-check first
     await refreshVerificationStatus();
 
@@ -180,6 +184,8 @@ function App() {
       setNextToken(undefined);
       setHasMoreMessages(true);
       setShowVerification(false);
+      setIsVerified(false);
+      setIsCheckingVerification(false);
       setStatus("Logged out successfully");
     } catch (error) {
       setError(`Logout failed: ${error}`);
@@ -201,12 +207,13 @@ function App() {
 
   async function handleVerificationComplete() {
     setShowVerification(false);
+
     setStatus("✅ Device verified! Syncing encryption keys...");
 
     try {
       // Perform a full sync to ensure keys are downloaded and processed
       await matrixService.sync();
-
+      refreshVerificationStatus();
       setStatus("✅ Keys synced! Reloading messages...");
 
       // Wait a bit longer for keys to be fully processed
@@ -241,7 +248,7 @@ function App() {
             setHasMoreMessages(true);
           }}
           onLogout={handleLogout}
-          isVerified={isCheckingVerification ? null : isVerified}
+          isVerified={isVerified ? true : isCheckingVerification ? null : false}
           onRetryVerification={handleRetryVerification}
         />
 
@@ -258,20 +265,30 @@ function App() {
             />
           ) : (
             <div className="no-room-selected">
-              <div className="no-room-selected-content">
-                <p className="main-message">Select a room to start chatting</p>
-                <p className="encouragement">
-                  <span role="img" aria-label="speech balloon">
-                    💬
-                  </span>{" "}
-                  Every conversation starts with a single message. You belong
-                  here, and your voice matters.
-                </p>
-                <p className="reminder">
-                  Remember: Everyone feels uncertain sometimes. Reaching out is
-                  brave.
-                </p>
-              </div>
+              {isLoadingRooms ? (
+                <div className="no-room-selected-content">
+                  <div className="spinner"></div>
+                  <p className="main-message"> Loading Rooms...</p>
+                </div>
+              ) : (
+                <div className="no-room-selected-content">
+                  <p className="main-message">
+                    {" "}
+                    Select a room to start chatting
+                  </p>
+                  <p className="encouragement">
+                    <span role="img" aria-label="speech balloon">
+                      💬
+                    </span>{" "}
+                    Every conversation starts with a single message. You belong
+                    here, and your voice matters.
+                  </p>
+                  <p className="reminder">
+                    Remember: Everyone feels uncertain sometimes. Reaching out
+                    is brave.
+                  </p>
+                </div>
+              )}
             </div>
           )}
           {error && <p className="status error">{error}</p>}

@@ -18,7 +18,7 @@
   --FS-Title: 28px;
 
   /* ===== TEXT ===== */
-  --Text-Main: #7cff9e; /* Matrix neon */
+  --Text-Main: #9ccfaa; /* Matrix neon */
   --Text-Secondary: #9fb8a8; /* terminal gray-green */
   --Text-Tertiary: #c8ffd9; /* soft glow */
   --Text-Muted: #6f8f7b;
@@ -26,6 +26,7 @@
   --Text-Black: #1f201f;
   --Text-Error: #ff4c4c;
   --Text-Info: #5cc8ff;
+  --Username-A: rgb(111, 184, 123);
 
   /* ===== BACKGROUNDS ===== */
   --BG-Main: #050b08; /* true matrix black */
@@ -48,7 +49,7 @@
   --BG-Error: rgba(64, 0, 0, 0.6);
 
   /* ===== ACTION COLORS ===== */
-  --Primary: #00ff66; /* iconic Matrix green */
+  --Primary: #3ed145; /* iconic Matrix green */
   --Primary-Hover: #33ff85;
   --Success: #00d46a;
   --Danger: #ff3b3b;
@@ -386,13 +387,10 @@ body {
   background: #1a1c1f; /* optional: keep hardcoded if you want */
 }
 
-
 .message {
   margin-bottom: var(--Space-L);
   padding: var(--Space-S) 0;
 }
-
-
 
 .message-header {
   display: flex;
@@ -403,7 +401,7 @@ body {
 
 .sender {
   font-weight: bold;
-  color: var(--Primary);
+  color: var(--Username-A);
 }
 
 .timestamp {
@@ -421,7 +419,6 @@ body {
   display: flex;
   gap: var(--Space-M);
   background: var(--BG-Sidebar);
-  
 }
 
 .message-input input {
@@ -453,7 +450,7 @@ body {
   cursor: pointer;
   font-weight: bold;
 
-  &:hover{
+  &:hover {
     background: var(--Primary-Hover);
   }
 }
@@ -525,6 +522,14 @@ body {
   animation: spin var(--Spin-Speed) linear infinite;
   margin-bottom: var(--Space-L);
 }
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
 
 .chat-view {
   display: flex;
@@ -551,7 +556,8 @@ body {
   max-width: 500px;
   width: 90%;
   color: var(--Text-Tertiary);
-  p, div{
+  p,
+  div {
     margin-top: var(--Space-M);
   }
 }
@@ -623,8 +629,6 @@ body {
   color: var(--Text-Tertiary);
 }
 
-
-
 .verification-button {
   width: 100%;
   padding: var(--Space-XS) var(--Space-S);
@@ -639,7 +643,6 @@ body {
 .verification-button:hover {
   background: var(--Secondary-Hover);
 }
-.message:hover{
+.message:hover {
   background: var(--Shadow-Hover);
 }
-
